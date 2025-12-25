@@ -49,16 +49,19 @@ final class AgentSetupViewModel {
     }
     
     func startConfiguration(for agent: CLIAgent, apiKey: String) {
+        configResult = nil
+        testResult = nil
+        selectedRawConfigIndex = 0
+        configurationMode = .automatic
+        isConfiguring = false
+        isTesting = false
+        
         guard let proxyManager = proxyManager else {
             errorMessage = "Proxy manager not available"
             return
         }
         
         selectedAgent = agent
-        configResult = nil
-        testResult = nil
-        selectedRawConfigIndex = 0
-        
         currentConfiguration = AgentConfiguration(
             agent: agent,
             proxyURL: proxyManager.baseURL + "/v1",
@@ -206,5 +209,16 @@ final class AgentSetupViewModel {
         currentConfiguration = nil
         errorMessage = nil
         selectedRawConfigIndex = 0
+        isConfiguring = false
+        isTesting = false
+    }
+    
+    func resetSheetState() {
+        configResult = nil
+        testResult = nil
+        selectedRawConfigIndex = 0
+        configurationMode = .automatic
+        isConfiguring = false
+        isTesting = false
     }
 }

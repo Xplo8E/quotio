@@ -8,6 +8,7 @@ import SwiftUI
 struct AgentSetupScreen: View {
     @Environment(QuotaViewModel.self) private var quotaViewModel
     @State private var selectedAgentForConfig: CLIAgent?
+    @State private var sheetPresentationID = UUID()
     @State private var hasLoadedOnce = false
     
     private var viewModel: AgentSetupViewModel {
@@ -63,6 +64,7 @@ struct AgentSetupScreen: View {
         }
         .sheet(item: $selectedAgentForConfig) { (agent: CLIAgent) in
             AgentConfigSheet(viewModel: viewModel, agent: agent)
+                .id(sheetPresentationID)
                 .onDisappear {
                     viewModel.dismissConfiguration()
                 }
@@ -138,6 +140,7 @@ struct AgentSetupScreen: View {
                         onConfigure: {
                             let apiKey = quotaViewModel.apiKeys.first ?? quotaViewModel.proxyManager.managementKey
                             viewModel.startConfiguration(for: status.agent, apiKey: apiKey)
+                            sheetPresentationID = UUID()
                             selectedAgentForConfig = status.agent
                         }
                     )

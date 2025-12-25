@@ -49,13 +49,14 @@ struct ProvidersScreen: View {
                 // Add Provider
                 Section {
                     ForEach(AIProvider.allCases) { provider in
-                        Button {
-                            if provider == .vertex {
-                                isImporterPresented = true
-                            } else {
-                                selectedProvider = provider
-                            }
-                        } label: {
+                    Button {
+                        if provider == .vertex {
+                            isImporterPresented = true
+                        } else {
+                            viewModel.oauthState = nil
+                            selectedProvider = provider
+                        }
+                    } label: {
                             HStack {
                                 ProviderIcon(provider: provider, size: 24)
                                 
@@ -89,6 +90,7 @@ struct ProvidersScreen: View {
             OAuthSheet(provider: provider, projectId: $projectId) {
                 selectedProvider = nil
                 projectId = ""
+                viewModel.oauthState = nil
             }
             .environment(viewModel)
         }
@@ -219,10 +221,10 @@ struct OAuthSheet: View {
             
             HStack(spacing: 16) {
                 Button("action.cancel".localized(), role: .cancel) {
+                    viewModel.cancelOAuth()
                     onDismiss()
                 }
                 .buttonStyle(.bordered)
-                .disabled(isPolling)
                 
                 if isError {
                     Button {

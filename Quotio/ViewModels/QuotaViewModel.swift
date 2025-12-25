@@ -285,6 +285,10 @@ final class QuotaViewModel {
         oauthState = OAuthState(provider: provider, status: .error, error: "OAuth timeout")
     }
     
+    func cancelOAuth() {
+        oauthState = nil
+    }
+    
     func deleteAuthFile(_ file: AuthFile) async {
         guard let client = apiClient else { return }
         

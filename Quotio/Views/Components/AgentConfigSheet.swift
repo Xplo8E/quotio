@@ -48,6 +48,7 @@ struct AgentConfigSheet: View {
         }
         .frame(width: 720, height: 800)
         .onAppear {
+            viewModel.resetSheetState()
             if isManualMode {
                 generatePreview()
             }
