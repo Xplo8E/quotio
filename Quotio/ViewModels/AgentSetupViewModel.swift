@@ -22,6 +22,8 @@ final class AgentSetupViewModel {
     var configResult: AgentConfigResult?
     var testResult: ConnectionTestResult?
     var errorMessage: String?
+    var availableModels: [AvailableModel] = []
+    var isLoadingModels = false
     
     var currentConfiguration: AgentConfiguration?
     var detectedShell: ShellType = .zsh
@@ -57,6 +59,7 @@ final class AgentSetupViewModel {
         configStorageOption = .jsonOnly
         isConfiguring = false
         isTesting = false
+        availableModels = []
         
         guard let proxyManager = proxyManager else {
             errorMessage = "Proxy manager not available"
@@ -69,6 +72,73 @@ final class AgentSetupViewModel {
             proxyURL: proxyManager.baseURL + "/v1",
             apiKey: apiKey
         )
+        
+        // Fetch available models from proxy
+        Task {
+            await fetchAvailableModels()
+        }
+    }
+    
+    func fetchAvailableModels() async {
+        guard let config = currentConfiguration else { return }
+        
+        isLoadingModels = true
+        defer { isLoadingModels = false }
+        
+        availableModels = await configurationService.fetchAvailableModels(
+            proxyURL: config.proxyURL,
+            apiKey: config.apiKey
+        )
+        
+        // If we got models and current slots are defaults, intelligently assign models
+        if !availableModels.isEmpty, let config = currentConfiguration {
+            // Only update if using default/placeholder models
+            if config.modelSlots[.opus] == AvailableModel.defaultModels[.opus]?.name {
+                // Find best matching model for each slot
+                let opusModel = findBestModel(for: .opus, in: availableModels)
+                let sonnetModel = findBestModel(for: .sonnet, in: availableModels)
+                let haikuModel = findBestModel(for: .haiku, in: availableModels)
+                
+                currentConfiguration?.modelSlots[.opus] = opusModel
+                currentConfiguration?.modelSlots[.sonnet] = sonnetModel
+                currentConfiguration?.modelSlots[.haiku] = haikuModel
+            }
+        }
+    }
+    
+    /// Find best matching model for a given slot based on naming patterns
+    private func findBestModel(for slot: ModelSlot, in models: [AvailableModel]) -> String {
+        let modelNames = models.map { $0.name.lowercased() }
+        let defaultModel = models.first?.name ?? ""
+        
+        switch slot {
+        case .opus:
+            // Prefer opus, then sonnet, then first available
+            if let match = models.first(where: { $0.name.lowercased().contains("opus") }) {
+                return match.name
+            }
+            if let match = models.first(where: { $0.name.lowercased().contains("sonnet") }) {
+                return match.name
+            }
+            return defaultModel
+            
+        case .sonnet:
+            // Prefer sonnet, then first available
+            if let match = models.first(where: { $0.name.lowercased().contains("sonnet") }) {
+                return match.name
+            }
+            return defaultModel
+            
+        case .haiku:
+            // Prefer haiku, flash, or fast models
+            if let match = models.first(where: { $0.name.lowercased().contains("haiku") }) {
+                return match.name
+            }
+            if let match = models.first(where: { $0.name.lowercased().contains("flash") }) {
+                return match.name
+            }
+            return defaultModel
+        }
     }
     
     func updateModelSlot(_ slot: ModelSlot, model: String) {

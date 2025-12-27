@@ -700,4 +700,29 @@ actor AgentConfigurationService {
             )
         }
     }
+    
+    /// Fetch available models from the proxy's /v1/models endpoint
+    /// Returns models dynamically based on configured provider credentials
+    func fetchAvailableModels(proxyURL: String, apiKey: String) async -> [AvailableModel] {
+        guard let url = URL(string: "\(proxyURL)/models") else { return [] }
+        
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 10
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let models = json["data"] as? [[String: Any]] else { return [] }
+            
+            return models.compactMap { model in
+                guard let id = model["id"] as? String else { return nil }
+                return AvailableModel(id: id, name: id, provider: "proxy", isDefault: false)
+            }
+        } catch {
+            return []
+        }
+    }
 }

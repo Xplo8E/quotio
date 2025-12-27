@@ -165,7 +165,7 @@ final class QuotaViewModel {
         menuBarSettings.autoSelectNewAccounts(availableItems: availableItems)
     }
     
-    /// Refresh Claude Code quota using CLI
+    /// Refresh Claude Code quota using API
     private func refreshClaudeCodeQuotasInternal() async {
         let quotas = await claudeCodeFetcher.fetchAsProviderQuota()
         if !quotas.isEmpty {

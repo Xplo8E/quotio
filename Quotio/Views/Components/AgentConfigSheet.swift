@@ -202,19 +202,39 @@ struct AgentConfigSheet: View {
     
     private var modelSlotsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("agents.modelSlots".localized())
-                .font(.subheadline)
-                .fontWeight(.medium)
+            HStack {
+                Text("agents.modelSlots".localized())
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Spacer()
+                
+                if viewModel.isLoadingModels {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Loading models...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             
-            VStack(spacing: 8) {
-                ForEach(ModelSlot.allCases) { slot in
-                    ModelSlotRow(
-                        slot: slot,
-                        selectedModel: viewModel.currentConfiguration?.modelSlots[slot] ?? "",
-                        onModelChange: { model in
-                            viewModel.updateModelSlot(slot, model: model)
-                        }
-                    )
+            if viewModel.availableModels.isEmpty && !viewModel.isLoadingModels {
+                Text("No models available. Check proxy connection.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(ModelSlot.allCases) { slot in
+                        ModelSlotRow(
+                            slot: slot,
+                            selectedModel: viewModel.currentConfiguration?.modelSlots[slot] ?? "",
+                            availableModels: viewModel.availableModels,
+                            onModelChange: { model in
+                                viewModel.updateModelSlot(slot, model: model)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -619,11 +639,20 @@ private struct InfoRow: View {
 private struct ModelSlotRow: View {
     let slot: ModelSlot
     let selectedModel: String
+    let availableModels: [AvailableModel]
     let onModelChange: (String) -> Void
+    
+    private var effectiveModels: [AvailableModel] {
+        availableModels.isEmpty ? AvailableModel.allModels : availableModels
+    }
     
     private var effectiveSelection: String {
         if selectedModel.isEmpty {
-            return AvailableModel.defaultModels[slot]?.name ?? AvailableModel.allModels.first?.name ?? ""
+            return effectiveModels.first?.name ?? ""
+        }
+        // If selected model is not in available list, return first available
+        if !effectiveModels.contains(where: { $0.name == selectedModel }) {
+            return effectiveModels.first?.name ?? selectedModel
         }
         return selectedModel
     }
@@ -640,7 +669,7 @@ private struct ModelSlotRow: View {
                 get: { effectiveSelection },
                 set: { onModelChange($0) }
             )) {
-                ForEach(AvailableModel.allModels) { model in
+                ForEach(effectiveModels) { model in
                     Text(model.displayName)
                         .tag(model.name)
                 }
@@ -649,7 +678,7 @@ private struct ModelSlotRow: View {
             .frame(maxWidth: 280)
         }
         .onAppear {
-            if selectedModel.isEmpty {
+            if selectedModel.isEmpty || !effectiveModels.contains(where: { $0.name == selectedModel }) {
                 onModelChange(effectiveSelection)
             }
         }

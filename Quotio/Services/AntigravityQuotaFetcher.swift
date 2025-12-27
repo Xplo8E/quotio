@@ -73,8 +73,28 @@ struct GroupedModelQuota: Identifiable, Sendable {
     }
     
     var formattedResetTime: String {
-        guard !resetTime.isEmpty,
-              let date = ISO8601DateFormatter().date(from: resetTime) else {
+        guard !resetTime.isEmpty else { return "—" }
+
+        // Try multiple ISO8601 format options to handle different API responses
+        let formatters: [ISO8601DateFormatter] = {
+            let withFractional = ISO8601DateFormatter()
+            withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+            let standard = ISO8601DateFormatter()
+            standard.formatOptions = [.withInternetDateTime]
+
+            return [withFractional, standard]
+        }()
+
+        var parsedDate: Date?
+        for formatter in formatters {
+            if let date = formatter.date(from: resetTime) {
+                parsedDate = date
+                break
+            }
+        }
+
+        guard let date = parsedDate else {
             return "—"
         }
         
@@ -168,6 +188,10 @@ struct ModelQuota: Codable, Identifiable, Sendable {
         // Claude Code quota names
         case "weekly-usage": return "Weekly Usage"
         case "sonnet-only": return "Sonnet Only"
+        case "5-hour": return "5-Hour"
+        case "weekly": return "Weekly"
+        case "opus-weekly": return "Opus Weekly"
+        case "sonnet-weekly": return "Sonnet Weekly"
         // Gemini CLI
         case "gemini-quota": return "Gemini"
         default: return name
@@ -175,7 +199,26 @@ struct ModelQuota: Codable, Identifiable, Sendable {
     }
     
     var formattedResetTime: String {
-        guard let date = ISO8601DateFormatter().date(from: resetTime) else {
+        // Try multiple ISO8601 format options to handle different API responses
+        let formatters: [ISO8601DateFormatter] = {
+            let withFractional = ISO8601DateFormatter()
+            withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+            let standard = ISO8601DateFormatter()
+            standard.formatOptions = [.withInternetDateTime]
+
+            return [withFractional, standard]
+        }()
+
+        var parsedDate: Date?
+        for formatter in formatters {
+            if let date = formatter.date(from: resetTime) {
+                parsedDate = date
+                break
+            }
+        }
+
+        guard let date = parsedDate else {
             return "—"
         }
         
